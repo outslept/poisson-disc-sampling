@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>poisson disc sampling</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #111;
+            color: #888;
+            font: 12px monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            height: 100vh;
+        }
+
+        #controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            accent-color: #666;
+        }
+
+        button {
+            font: inherit;
+            background: none;
+            color: #888;
+            border: 1px solid #333;
+            padding: 3px 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            border-color: #666;
+            color: #ccc;
+        }
+
+        #stats .bad {
+            color: #d55;
+        }
+
+        canvas {
+            border: 1px solid #222;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input id="radius" type="range" min="4" max="32" value="12">
+        <input id="speed" type="range" min="1" max="60" value="10">
+        <button id="restart">↻</button>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="stats"></div>
+    <script src="index.js"></script>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const stats = document.getElementById('stats');
+        const radiusInput = document.getElementById('radius');
+        const speedInput = document.getElementById('speed');
+
+        let sampler;
+        let raf;
+
+        function updateStats() {
+            const n = sampler.points.length;
+            const max = theoreticalMaxPoints(sampler);
+            const minDist = computeMinDistance(sampler);
+            const valid = minDist >= sampler.r - 1e-9;
+
+            stats.innerHTML =
+                n + ' / ' + max + ' pts · min ' +
+                '<span class="' + (valid ? '' : 'bad') + '">' +
+                (minDist === Infinity ? '—' : minDist.toFixed(2)) +
+                '</span>';
+        }
+
+        function render() {
+            const steps = parseInt(speedInput.value);
+            for (let i = 0; i < steps; i++) {
+                stepSampler(sampler);
+            }
+
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ccc';
+            for (const p of sampler.points) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            updateStats();
+
+            raf = sampler.active.length > 0 ? requestAnimationFrame(render) : null;
+        }
+
+        function reset() {
+            if (raf) cancelAnimationFrame(raf);
+            sampler = createSampler(canvas.width, canvas.height, parseInt(radiusInput.value), 30);
+            render();
+        }
+
+        radiusInput.addEventListener('input', reset);
+        document.getElementById('restart').addEventListener('click', reset);
+
+        reset();
+    </script>
+</body>
+</html>
