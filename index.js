@@ -1,30 +1,12 @@
-interface Point {
-    x: number;
-    y: number;
-}
-
-interface SamplerState {
-    width: number;
-    height: number;
-    r: number;
-    k: number;
-    cellSize: number;
-    cols: number;
-    rows: number;
-    grid: (Point | null)[];
-    active: Point[];
-    points: Point[];
-}
-
-function createSampler(width: number, height: number, r: number, k: number = 30): SamplerState {
+function createSampler(width, height, r, k = 30) {
     const cellSize = r / Math.SQRT2;
 
     const cols = Math.ceil(width / cellSize);
     const rows = Math.ceil(height / cellSize);
 
-    const grid: (Point | null)[] = new Array(cols * rows).fill(null);
+    const grid = new Array(cols * rows).fill(null);
 
-    const state: SamplerState = {
+    const state = {
         width,
         height,
         r,
@@ -45,7 +27,7 @@ function createSampler(width: number, height: number, r: number, k: number = 30)
     return state;
 }
 
-function addPoint(state: SamplerState, p: Point): void {
+function addPoint(state, p) {
     state.points.push(p);
     state.active.push(p);
 
@@ -54,7 +36,7 @@ function addPoint(state: SamplerState, p: Point): void {
     state.grid[col + row * state.cols] = p;
 }
 
-function isValid(state: SamplerState, p: Point): boolean {
+function isValid(state, p) {
     if (p.x < 0 || p.x >= state.width || p.y < 0 || p.y >= state.height) {
         return false;
     }
@@ -83,7 +65,7 @@ function isValid(state: SamplerState, p: Point): boolean {
     return true;
 }
 
-function stepSampler(state: SamplerState): boolean {
+function stepSampler(state) {
     if (state.active.length === 0) return false;
 
     const idx = Math.floor(Math.random() * state.active.length);
@@ -93,7 +75,7 @@ function stepSampler(state: SamplerState): boolean {
     for (let i = 0; i < state.k; i++) {
         const angle = Math.random() * Math.PI * 2;
         const radius = state.r * (1 + Math.random());
-        const candidate: Point = {
+        const candidate = {
             x: parent.x + Math.cos(angle) * radius,
             y: parent.y + Math.sin(angle) * radius
         };
@@ -112,7 +94,7 @@ function stepSampler(state: SamplerState): boolean {
     return true;
 }
 
-function computeMinDistance(state: SamplerState): number {
+function computeMinDistance(state) {
     let min = Infinity;
 
     for (const p of state.points) {
@@ -140,6 +122,6 @@ function computeMinDistance(state: SamplerState): number {
     return min;
 }
 
-function theoreticalMaxPoints(state: SamplerState): number {
+function theoreticalMaxPoints(state) {
     return Math.floor((2 * state.width * state.height) / (Math.sqrt(3) * state.r * state.r));
 }
