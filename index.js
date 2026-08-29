@@ -103,3 +103,7 @@ function computeMinDistance(state) {
 
     return Math.sqrt(min);
 }
+
+function theoreticalMaxPoints(state) {
+    return Math.floor((2 * state.width * state.height) / (Math.sqrt(3) * state.r * state.r));
+}
