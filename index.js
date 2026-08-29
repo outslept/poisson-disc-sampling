@@ -36,11 +36,7 @@ function addPoint(state, p) {
     state.grid[col + row * state.cols] = p;
 }
 
-function isValid(state, p) {
-    if (p.x < 0 || p.x >= state.width || p.y < 0 || p.y >= state.height) {
-        return false;
-    }
-
+function nearestSqDist(state, p) {
     const col = Math.floor(p.x / state.cellSize);
     const row = Math.floor(p.y / state.cellSize);
 
@@ -49,20 +45,28 @@ function isValid(state, p) {
     const minRow = Math.max(0, row - 2);
     const maxRow = Math.min(state.rows - 1, row + 2);
 
+    let min = Infinity;
     for (let ry = minRow; ry <= maxRow; ry++) {
         for (let cx = minCol; cx <= maxCol; cx++) {
-            const neighbor = state.grid[cx + ry * state.cols];
-            if (!neighbor) continue;
+            const q = state.grid[cx + ry * state.cols];
+            if (!q || q === p) continue;
 
-            const dx = p.x - neighbor.x;
-            const dy = p.y - neighbor.y;
-            if (dx * dx + dy * dy < state.r * state.r) {
-                return false;
-            }
+            const dx = p.x - q.x;
+            const dy = p.y - q.y;
+            const d = dx * dx + dy * dy;
+            if (d < min) min = d;
         }
     }
 
-    return true;
+    return min;
+}
+
+function isValid(state, p) {
+    if (p.x < 0 || p.x >= state.width || p.y < 0 || p.y >= state.height) {
+        return false;
+    }
+
+    return nearestSqDist(state, p) >= state.r * state.r;
 }
 
 function stepSampler(state) {
@@ -70,7 +74,6 @@ function stepSampler(state) {
 
     const idx = Math.floor(Math.random() * state.active.length);
     const parent = state.active[idx];
-    let found = false;
 
     for (let i = 0; i < state.k; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -82,15 +85,11 @@ function stepSampler(state) {
 
         if (isValid(state, candidate)) {
             addPoint(state, candidate);
-            found = true;
-            break;
+            return true;
         }
     }
 
-    if (!found) {
-        state.active.splice(idx, 1);
-    }
-
+    state.active.splice(idx, 1);
     return true;
 }
 
@@ -98,30 +97,9 @@ function computeMinDistance(state) {
     let min = Infinity;
 
     for (const p of state.points) {
-        const col = Math.floor(p.x / state.cellSize);
-        const row = Math.floor(p.y / state.cellSize);
-
-        const minCol = Math.max(0, col - 2);
-        const maxCol = Math.min(state.cols - 1, col + 2);
-        const minRow = Math.max(0, row - 2);
-        const maxRow = Math.min(state.rows - 1, row + 2);
-
-        for (let ry = minRow; ry <= maxRow; ry++) {
-            for (let cx = minCol; cx <= maxCol; cx++) {
-                const q = state.grid[cx + ry * state.cols];
-                if (!q || q === p) continue;
-
-                const dx = p.x - q.x;
-                const dy = p.y - q.y;
-                const d = Math.sqrt(dx * dx + dy * dy);
-                if (d < min) min = d;
-            }
-        }
+        const d = nearestSqDist(state, p);
+        if (d < min) min = d;
     }
 
-    return min;
-}
-
-function theoreticalMaxPoints(state) {
-    return Math.floor((2 * state.width * state.height) / (Math.sqrt(3) * state.r * state.r));
+    return Math.sqrt(min);
 }
